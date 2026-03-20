@@ -418,6 +418,22 @@ function buildPreflightWarnings(problem, solution, memories) {
   return { warnings, checklist };
 }
 
+function buildThinkingReplaySummary(replay = {}) {
+  const totalPauses = replay.pauseMoments || 0;
+  const deletions = replay.deletionBursts || 0;
+  const rewrites = replay.rewriteMoments || 0;
+  const longestPause = replay.longestPauseMs || 0;
+  const focusArea = replay.focusArea || "base cases and problem framing";
+
+  return `Typing summary:
+- Total edits: ${replay.totalEdits || 0}
+- Pause moments: ${totalPauses}
+- Deletion bursts: ${deletions}
+- Rewrite moments: ${rewrites}
+- Longest pause: ${Math.round(longestPause / 1000)} seconds
+- Suspected focus area: ${focusArea}`;
+}
+
 app.post("/api/preflight", async (req, res) => {
   const { problem, solution } = req.body;
   try {
@@ -667,6 +683,131 @@ app.post("/api/teachback", async (req, res) => {
       score: 70,
       evaluation:
         "Your explanation shows basic understanding. Add one concrete example and a step-by-step walkthrough.",
+    });
+  }
+});
+
+app.post("/api/eli5", async (req, res) => {
+  const { problem } = req.body;
+  if (!problem) {
+    return res.status(400).json({ explanation: "Missing problem." });
+  }
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are the ELI5 engine for a coding mentor app.
+Explain difficult problems in 3 layers:
+1. Real-life analogy first. Avoid algorithm jargon completely.
+2. Gentle bridge from analogy to problem logic.
+3. Only then introduce the technical idea in simple words.
+Keep it warm, concrete, and beginner-safe.`,
+        },
+        {
+          role: "user",
+          content: `Problem:\n${problem}\n\nExplain this in ELI5 mode.`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.4,
+      max_tokens: 500,
+    });
+
+    res.json({
+      explanation:
+        completion.choices[0]?.message?.content ||
+        "Think of the problem like organizing toys into boxes before deciding where each one should go.",
+    });
+  } catch (error) {
+    res.json({
+      explanation:
+        "Forget the algorithm for a second. Imagine you are sorting books on a shelf and trying to narrow down the right section before checking every book.",
+    });
+  }
+});
+
+app.post("/api/baby-steps", async (req, res) => {
+  const { problem } = req.body;
+  if (!problem) {
+    return res.status(400).json({ steps: [] });
+  }
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You break hard coding problems into 3 to 5 tiny micro-problems.
+Start with something almost trivial, then add one new idea at a time.
+Return clear markdown with:
+## Step 1
+goal
+tiny task
+why it matters
+Repeat for each step.`,
+        },
+        {
+          role: "user",
+          content: `Problem:\n${problem}\n\nBreak it into baby steps.`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    res.json({
+      steps:
+        completion.choices[0]?.message?.content ||
+        "## Step 1\nRestate the problem in your own words.\n## Step 2\nSolve the smallest possible version.\n## Step 3\nAdd one extra rule.\n## Step 4\nGeneralize the pattern.",
+    });
+  } catch (error) {
+    res.json({
+      steps:
+        "## Step 1\nSolve a tiny version.\n## Step 2\nHandle one more edge case.\n## Step 3\nGeneralize the repeating pattern.\n## Step 4\nApply it to the full input.",
+    });
+  }
+});
+
+app.post("/api/thinking-replay", async (req, res) => {
+  const { problem, solution, replay } = req.body;
+  if (!problem || !solution) {
+    return res.status(400).json({ replay: "Missing problem or solution." });
+  }
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You analyze how a beginner thinks while coding.
+Given a problem, draft solution, and typing behavior summary, infer:
+1. Where they got stuck
+2. What that suggests about their weak concept
+3. What practice should happen next session
+Be specific and empathetic.`,
+        },
+        {
+          role: "user",
+          content: `Problem:\n${problem}\n\nSolution Draft:\n${solution}\n\n${buildThinkingReplaySummary(replay)}`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 500,
+    });
+
+    res.json({
+      replay:
+        completion.choices[0]?.message?.content ||
+        "You spent most of your effort reworking the same section, which suggests the core idea is not stable yet.",
+    });
+  } catch (error) {
+    const focusArea = replay?.focusArea || "the base case";
+    res.json({
+      replay: `You spent a lot of time revisiting ${focusArea}. That usually means this concept is still shaky. Next session should begin with one tiny focused exercise on ${focusArea}.`,
     });
   }
 });

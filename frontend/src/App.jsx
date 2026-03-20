@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, NavLink, Navigate, useNavigate } from "react-router-dom";
 import "./App.css";
 
 const API = "http://localhost:5000";
@@ -12,11 +12,122 @@ const userId = (() => {
   return created;
 })();
 
-function Home() {
+function FeedbackSummary({ feedback }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = feedback.split("\n").filter((line) => line.trim() !== "");
+  const visibleLines = expanded ? lines : lines.slice(0, 5);
+
+  return (
+    <div className="feedback-panel">
+      <h3>Mentor Feedback</h3>
+      {visibleLines.map((line, index) => (
+        <p key={index}>{line}</p>
+      ))}
+      {lines.length > 5 && (
+        <button className="outline-btn" onClick={() => setExpanded((value) => !value)}>
+          {expanded ? "Show less" : "Show all"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Login({ authUser, setAuthUser }) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: authUser?.name || localStorage.getItem("mentorUserName") || "",
+    email: authUser?.email || localStorage.getItem("mentorUserEmail") || "",
+    password: "",
+  });
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
+      setMessage("Fill in all fields.");
+      return;
+    }
+
+    const nextUser = {
+      id: localStorage.getItem("mentorUserId") || userId,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      loggedInAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem("mentorUserName", nextUser.name);
+    localStorage.setItem("mentorUserEmail", nextUser.email);
+    localStorage.setItem("mentorAuthUser", JSON.stringify(nextUser));
+    setAuthUser(nextUser);
+    setForm((current) => ({ ...current, password: "" }));
+    setMessage("Login saved on this device.");
+    navigate("/home");
+  };
+
+  return (
+    <div className="panel auth-panel">
+      <div className="auth-shell glass">
+        <div className="auth-copy">
+          <p className="eyebrow">Welcome Back</p>
+          <h2>Login To AI Coding Mentor</h2>
+          <p className="text-muted">
+            Sign in to keep your mentor requests, notifications, and chats linked
+            to your profile.
+          </p>
+        </div>
+        <form className="mentor-form auth-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Name</label>
+            <input
+              value={form.name}
+              onChange={(e) =>
+                setForm((current) => ({ ...current, name: e.target.value }))
+              }
+              placeholder="Your full name"
+            />
+          </div>
+          <div className="input-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) =>
+                setForm((current) => ({ ...current, email: e.target.value }))
+              }
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="input-group">
+            <label>Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) =>
+                setForm((current) => ({ ...current, password: e.target.value }))
+              }
+              placeholder="Enter your password"
+            />
+          </div>
+          <button className="submit-btn" type="submit">
+            Login
+          </button>
+          {authUser && (
+            <p className="text-muted">
+              Signed in as {authUser.name} ({authUser.email})
+            </p>
+          )}
+          {message && <p className="text-muted">{message}</p>}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Home({ authUser }) {
   const [profile, setProfile] = useState({
     userId,
-    userName: localStorage.getItem("mentorUserName") || "",
-    userEmail: localStorage.getItem("mentorUserEmail") || "",
+    userName: authUser?.name || localStorage.getItem("mentorUserName") || "",
+    userEmail: authUser?.email || localStorage.getItem("mentorUserEmail") || "",
   });
   const [mentors, setMentors] = useState([]);
   const [recommended, setRecommended] = useState([]);
@@ -26,6 +137,7 @@ function Home() {
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [requestMessage, setRequestMessage] = useState("");
   const [requestFeedback, setRequestFeedback] = useState("");
+  const [mentorCreateFeedback, setMentorCreateFeedback] = useState("");
   const [mentorForm, setMentorForm] = useState({
     name: "", role: "", company: "", skills: "", experience: "Intermediate", email: "", availability: "", bio: "",
   });
@@ -89,13 +201,32 @@ function Home() {
 
   const createMentor = async (e) => {
     e.preventDefault();
-    await fetch(`${API}/api/mentors`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mentorForm),
-    });
-    setMentorForm({ name: "", role: "", company: "", skills: "", experience: "Intermediate", email: "", availability: "", bio: "" });
-    loadHub();
+    try {
+      const res = await fetch(`${API}/api/mentors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mentorForm),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMentorCreateFeedback(data.error || "Could not create mentor profile.");
+        return;
+      }
+
+      if (data.mentor) {
+        setMentors((current) => [data.mentor, ...current]);
+        setRecommended((current) =>
+          current.length === 0 ? [data.mentor] : current,
+        );
+      }
+
+      setMentorCreateFeedback("Mentor profile created successfully. You can see it in All Mentors now.");
+      setMentorForm({ name: "", role: "", company: "", skills: "", experience: "Intermediate", email: "", availability: "", bio: "" });
+      loadHub();
+    } catch {
+      setMentorCreateFeedback("Backend unavailable. Mentor profile was not created.");
+    }
   };
 
   const requestGuidance = async () => {
@@ -186,7 +317,65 @@ function Home() {
           <input value={mentorForm.availability} onChange={(e) => setMentorForm((f) => ({ ...f, availability: e.target.value }))} placeholder="Availability" required />
           <textarea rows={3} value={mentorForm.bio} onChange={(e) => setMentorForm((f) => ({ ...f, bio: e.target.value }))} placeholder="Bio" />
           <button className="submit-btn">Create Mentor Profile</button>
+          {mentorCreateFeedback && (
+            <p className="text-muted" style={{ marginTop: "0.75rem" }}>
+              {mentorCreateFeedback}
+            </p>
+          )}
         </form>
+      </section>
+
+      <section className="glass card">
+        <div className="flex-row space-between">
+          <div>
+            <h3>All Mentors</h3>
+            <p className="text-muted">
+              Newly created mentors will appear here after you create them.
+            </p>
+          </div>
+          <button className="outline-btn" onClick={loadHub}>
+            Refresh Mentors
+          </button>
+        </div>
+        <div className="mentor-grid">
+          {mentors.length === 0 && (
+            <p className="text-muted">No mentors available yet.</p>
+          )}
+          {mentors.map((mentor) => (
+            <div
+              key={`all-${mentor.id}`}
+              className="mentor-card"
+              onClick={() => setSelectedMentor(mentor)}
+            >
+              <div className="mentor-top">
+                <div className="avatar">{mentor.name?.[0] || "M"}</div>
+                <div>
+                  <h4>{mentor.name}</h4>
+                  <p>{mentor.role}</p>
+                </div>
+              </div>
+              <div className="mentor-meta">
+                <span
+                  className={`badge ${mentor.status === "available" ? "online" : "busy"}`}
+                >
+                  {mentor.status || "available"}
+                </span>
+                <span className="text-muted">{mentor.company}</span>
+              </div>
+              <p className="text-muted">
+                Experience: {mentor.experience} | Availability:{" "}
+                {mentor.availability || "Not shared yet"}
+              </p>
+              <div className="skill-row">
+                {(mentor.skills || []).map((skill) => (
+                  <span key={`${mentor.id}-${skill}`} className="chip">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="glass card">
@@ -243,9 +432,22 @@ function Submit({ setFeedback, setSessionCount, setMistakeDNA, setConfidence, se
   const [problem, setProblem] = useState("");
   const [solution, setSolution] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
+  const [eli5Text, setEli5Text] = useState("");
+  const [babyStepsText, setBabyStepsText] = useState("");
+  const [thinkingReplayText, setThinkingReplayText] = useState("");
   const [preflightWarnings, setPreflightWarnings] = useState([]);
   const [checklistLocal, setChecklistLocal] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [modeLoading, setModeLoading] = useState(false);
+  const [typingReplay, setTypingReplay] = useState({
+    totalEdits: 0,
+    pauseMoments: 0,
+    deletionBursts: 0,
+    rewriteMoments: 0,
+    longestPauseMs: 0,
+    focusArea: "problem decomposition",
+  });
+  const [lastEditAt, setLastEditAt] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -256,6 +458,17 @@ function Submit({ setFeedback, setSessionCount, setMistakeDNA, setConfidence, se
       setPreflightWarnings(preflightData.warnings || []);
       setChecklistLocal(preflightData.checklist || []);
       setChecklist(preflightData.checklist || []);
+      const [eli5Res, babyRes, replayRes] = await Promise.all([
+        fetch(`${API}/api/eli5`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem }) }),
+        fetch(`${API}/api/baby-steps`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem }) }),
+        fetch(`${API}/api/thinking-replay`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem, solution, replay: typingReplay }) }),
+      ]);
+      const eli5Data = await eli5Res.json();
+      const babyData = await babyRes.json();
+      const replayData = await replayRes.json();
+      setEli5Text(eli5Data.explanation || "");
+      setBabyStepsText(babyData.steps || "");
+      setThinkingReplayText(replayData.replay || "");
       const res = await fetch(`${API}/api/feedback`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem, solution }) });
       const data = await res.json();
       setFeedbackText(data.feedback || "No feedback.");
@@ -278,16 +491,67 @@ function Submit({ setFeedback, setSessionCount, setMistakeDNA, setConfidence, se
     }
   };
 
+  const handleSolutionChange = (value) => {
+    const now = Date.now();
+    const diff = solution.length - value.length;
+    const pause = lastEditAt ? now - lastEditAt : 0;
+    setTypingReplay((current) => ({
+      totalEdits: current.totalEdits + 1,
+      pauseMoments: current.pauseMoments + (pause > 7000 ? 1 : 0),
+      deletionBursts: current.deletionBursts + (diff > 8 ? 1 : 0),
+      rewriteMoments:
+        current.rewriteMoments +
+        ((diff > 0 && value.length > 20) || (pause > 5000 && diff !== 0) ? 1 : 0),
+      longestPauseMs: Math.max(current.longestPauseMs, pause),
+      focusArea:
+        /base|recurs|dp|memo|tree|graph/i.test(value)
+          ? "core recurrence or state definition"
+          : /if|while|for|case/i.test(value)
+            ? "control flow and edge cases"
+            : "problem decomposition",
+    }));
+    setLastEditAt(now);
+    setSolution(value);
+  };
+
+  const runLearningModes = async () => {
+    if (!problem.trim()) return;
+    setModeLoading(true);
+    try {
+      const [eli5Res, babyRes] = await Promise.all([
+        fetch(`${API}/api/eli5`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem }) }),
+        fetch(`${API}/api/baby-steps`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ problem }) }),
+      ]);
+      const eli5Data = await eli5Res.json();
+      const babyData = await babyRes.json();
+      setEli5Text(eli5Data.explanation || "");
+      setBabyStepsText(babyData.steps || "");
+    } catch {
+      setEli5Text("ELI5 mode is unavailable right now.");
+      setBabyStepsText("Baby Steps mode is unavailable right now.");
+    } finally {
+      setModeLoading(false);
+    }
+  };
+
   return (
     <div className="panel">
       <h2>Submit Code</h2>
       <form onSubmit={handleSubmit} className="mentor-form">
         <textarea rows={3} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="Problem" required />
-        <textarea rows={10} value={solution} onChange={(e) => setSolution(e.target.value)} className="code-input" placeholder="Solution" required />
-        <button className="submit-btn" disabled={loading}>{loading ? "Analyzing..." : "Get Feedback & Memory"}</button>
+        <textarea rows={10} value={solution} onChange={(e) => handleSolutionChange(e.target.value)} className="code-input" placeholder="Solution" required />
+        <div className="filter-row">
+          <button type="button" className="outline-btn" onClick={runLearningModes} disabled={modeLoading}>
+            {modeLoading ? "Loading modes..." : "Run ELI5 + Baby Steps"}
+          </button>
+          <button className="submit-btn" disabled={loading}>{loading ? "Analyzing..." : "Get Feedback & Memory"}</button>
+        </div>
       </form>
       <div className="mini-card"><h4>Ghost Warnings</h4><ul>{preflightWarnings.map((w, i) => <li key={i}>{w}</li>)}</ul></div>
       <div className="mini-card"><h4>Checklist</h4><ul>{checklistLocal.map((c, i) => <li key={i}>{c}</li>)}</ul></div>
+      {eli5Text && <div className="mini-card"><h4>ELI5 Mode</h4><p style={{ whiteSpace: "pre-wrap" }}>{eli5Text}</p></div>}
+      {babyStepsText && <div className="mini-card"><h4>Baby Steps Mode</h4><p style={{ whiteSpace: "pre-wrap" }}>{babyStepsText}</p></div>}
+      {thinkingReplayText && <div className="mini-card"><h4>Thinking Replay</h4><p style={{ whiteSpace: "pre-wrap" }}>{thinkingReplayText}</p></div>}
       {feedbackText && <div className="mini-card"><FeedbackSummary feedback={feedbackText} /></div>}
     </div>
   );
@@ -401,7 +665,23 @@ function TeachBack({ teachBackConcept, teachBackExplanation, setTeachBackConcept
   );
 }
 
+function ProtectedRoute({ authUser, children }) {
+  if (!authUser) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 function App() {
+  const [authUser, setAuthUser] = useState(() => {
+    const saved = localStorage.getItem("mentorAuthUser");
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  });
   const [mistakeDNA, setMistakeDNA] = useState({ "Logic Errors": 40, Syntax: 50, "Edge Cases": 45, Complexity: 42, "Data Structures": 48, "Null Handling": 46 });
   const [confidence, setConfidence] = useState(55);
   const [timeline, setTimeline] = useState([]);
@@ -468,22 +748,31 @@ function App() {
         <header className="header">
           <div className="header-left"><div className="nav-icon">AI</div><div className="logo-row"><div className="logo-icon"></div><div><h1>AI Coding Mentor</h1><p>Multi-page Hindsight</p></div></div></div>
           <nav className="top-nav">
-            <NavLink to="/" className="nav-link">Home</NavLink>
-            <NavLink to="/submit" className="nav-link">Submit</NavLink>
-            <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>
-            <NavLink to="/problems" className="nav-link">Problems</NavLink>
-            <NavLink to="/challenge" className="nav-link">Challenge</NavLink>
-            <NavLink to="/teachback" className="nav-link">TeachBack</NavLink>
+            <NavLink to="/login" className="nav-link">Login</NavLink>
+            {authUser && (
+              <>
+                <NavLink to="/home" className="nav-link">Home</NavLink>
+                <NavLink to="/submit" className="nav-link">Submit</NavLink>
+                <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>
+                <NavLink to="/problems" className="nav-link">Problems</NavLink>
+                <NavLink to="/challenge" className="nav-link">Challenge</NavLink>
+                <NavLink to="/teachback" className="nav-link">TeachBack</NavLink>
+              </>
+            )}
           </nav>
         </header>
-        <div className="session-info">{sessionCount} sessions Confidence {confidence}%</div>
+        <div className="session-info">
+          {sessionCount} sessions Confidence {confidence}% {authUser ? `| Signed in as ${authUser.name}` : "| Not logged in"}
+        </div>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/submit" element={<Submit setFeedback={() => {}} setSessionCount={setSessionCount} setMistakeDNA={setMistakeDNA} setConfidence={setConfidence} setTimeline={setTimeline} setChecklist={setChecklist} setChallenge={setChallenge} />} />
-          <Route path="/dashboard" element={<Dashboard mistakeDNA={mistakeDNA} confidence={confidence} timeline={timeline} checklist={checklist} topicsLearned={topicsLearned} totalMistakes={totalMistakes} timeTaken={timeTaken} improvementRate={improvementRate} weakAreas={weakAreas} strongAreas={strongAreas} progressGraph={progressGraph} improvementInsights={improvementInsights} />} />
-          <Route path="/problems" element={<Problems />} />
-          <Route path="/challenge" element={<Challenge challenge={challenge} fetchChallenge={async () => { const res = await fetch(`${API}/api/challenge`); const data = await res.json(); setChallenge(data.challenge || "No challenge"); }} />} />
-          <Route path="/teachback" element={<TeachBack teachBackConcept={teachBackConcept} teachBackExplanation={teachBackExplanation} setTeachBackConcept={setTeachBackConcept} setTeachBackExplanation={setTeachBackExplanation} teachBackScore={teachBackScore} teachBackResult={teachBackResult} evaluateTeachBack={evaluateTeachBack} />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/home" element={<ProtectedRoute authUser={authUser}><Home key={authUser?.email || "guest"} authUser={authUser} /></ProtectedRoute>} />
+          <Route path="/login" element={<Login authUser={authUser} setAuthUser={setAuthUser} />} />
+          <Route path="/submit" element={<ProtectedRoute authUser={authUser}><Submit setFeedback={() => {}} setSessionCount={setSessionCount} setMistakeDNA={setMistakeDNA} setConfidence={setConfidence} setTimeline={setTimeline} setChecklist={setChecklist} setChallenge={setChallenge} /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute authUser={authUser}><Dashboard mistakeDNA={mistakeDNA} confidence={confidence} timeline={timeline} checklist={checklist} topicsLearned={topicsLearned} totalMistakes={totalMistakes} timeTaken={timeTaken} improvementRate={improvementRate} weakAreas={weakAreas} strongAreas={strongAreas} progressGraph={progressGraph} improvementInsights={improvementInsights} /></ProtectedRoute>} />
+          <Route path="/problems" element={<ProtectedRoute authUser={authUser}><Problems /></ProtectedRoute>} />
+          <Route path="/challenge" element={<ProtectedRoute authUser={authUser}><Challenge challenge={challenge} fetchChallenge={async () => { const res = await fetch(`${API}/api/challenge`); const data = await res.json(); setChallenge(data.challenge || "No challenge"); }} /></ProtectedRoute>} />
+          <Route path="/teachback" element={<ProtectedRoute authUser={authUser}><TeachBack teachBackConcept={teachBackConcept} teachBackExplanation={teachBackExplanation} setTeachBackConcept={setTeachBackConcept} setTeachBackExplanation={setTeachBackExplanation} teachBackScore={teachBackScore} teachBackResult={teachBackResult} evaluateTeachBack={evaluateTeachBack} /></ProtectedRoute>} />
         </Routes>
         <footer className="footer">Built for HackWithBangalore</footer>
       </div>
