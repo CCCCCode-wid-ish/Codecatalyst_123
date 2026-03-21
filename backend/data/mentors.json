@@ -1,0 +1,73 @@
+[
+  {
+    "id": "mentor-1774049565553-mkwx19",
+    "name": "Aishwarya Amin",
+    "role": "sde",
+    "company": "Microsoft",
+    "skills": [
+      "react"
+    ],
+    "experience": "Intermediate",
+    "email": "aishwaryaamin78661@gmail.com",
+    "availability": "5",
+    "bio": "i m sde at Microsoft",
+    "status": "available",
+    "createdAt": "2026-03-20T23:32:45.553Z"
+  },
+  {
+    "id": "mentor-aisha",
+    "name": "Aisha Amin",
+    "role": "Senior Software Mentor",
+    "company": "CodeFlow",
+    "skills": [
+      "react",
+      "node.js",
+      "system design",
+      "javascript"
+    ],
+    "experience": "Senior",
+    "email": "aisha.mentor@example.com",
+    "availability": "Weekdays 6 PM - 9 PM IST",
+    "bio": "Helps learners move from frontend basics to production-ready full-stack apps.",
+    "status": "available",
+    "createdAt": "2026-03-20T23:31:39.026Z"
+  },
+  {
+    "id": "mentor-rohan",
+    "name": "Rohan Patel",
+    "role": "Algorithm Coach",
+    "company": "AlgoLab",
+    "skills": [
+      "dsa",
+      "graphs",
+      "dynamic programming",
+      "c++",
+      "python"
+    ],
+    "experience": "Intermediate",
+    "email": "rohan.mentor@example.com",
+    "availability": "Weekends 10 AM - 2 PM IST",
+    "bio": "Strong fit for competitive programming, interview prep, and debugging patterns.",
+    "status": "available",
+    "createdAt": "2026-03-20T23:31:39.027Z"
+  },
+  {
+    "id": "mentor-nisha",
+    "name": "Nisha Verma",
+    "role": "Full Stack Guide",
+    "company": "LaunchPad",
+    "skills": [
+      "javascript",
+      "ui",
+      "testing",
+      "devops",
+      "react"
+    ],
+    "experience": "Senior",
+    "email": "nisha.mentor@example.com",
+    "availability": "Daily 7 PM - 10 PM IST",
+    "bio": "Focuses on frontend architecture, project polish, and shipping confidence.",
+    "status": "available",
+    "createdAt": "2026-03-20T23:31:39.027Z"
+  }
+]

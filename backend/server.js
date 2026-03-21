@@ -508,14 +508,16 @@ app.get("/api/dashboard", async (req, res) => {
     );
 
     const dnaEntries = Object.entries(dna);
-    const weakAreas = dnaEntries
+    const weakAreas = [...dnaEntries]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([t]) => t);
-    const strongAreas = dnaEntries
+      .map(([topic]) => topic);
+    const weakSet = new Set(weakAreas);
+    const strongAreas = [...dnaEntries]
       .sort((a, b) => a[1] - b[1])
+      .filter(([topic]) => !weakSet.has(topic))
       .slice(0, 3)
-      .map(([t]) => t);
+      .map(([topic]) => topic);
 
     const progressGraph = timeline.map((item, index) => ({
       label: `S${item.session}`,
@@ -558,14 +560,17 @@ app.get("/api/dashboard", async (req, res) => {
     const fallbackTopics = Object.keys(fallbackDNA).filter(
       (t) => fallbackDNA[t] < 65,
     );
-    const fallbackWeak = Object.entries(fallbackDNA)
+    const fallbackEntries = Object.entries(fallbackDNA);
+    const fallbackWeak = [...fallbackEntries]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([t]) => t);
-    const fallbackStrong = Object.entries(fallbackDNA)
+      .map(([topic]) => topic);
+    const fallbackWeakSet = new Set(fallbackWeak);
+    const fallbackStrong = [...fallbackEntries]
       .sort((a, b) => a[1] - b[1])
+      .filter(([topic]) => !fallbackWeakSet.has(topic))
       .slice(0, 3)
-      .map(([t]) => t);
+      .map(([topic]) => topic);
 
     res.json({
       mistakeDNA: fallbackDNA,
@@ -639,6 +644,324 @@ app.get("/api/challenge", async (req, res) => {
     res.json({
       challenge:
         "Write a function that returns the product of all non-zero numbers in an array; handle empty and negative values.",
+    });
+  }
+});
+
+function parseJsonFromText(rawText, fallbackValue = null) {
+  try {
+    const match = rawText?.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!match) return fallbackValue;
+    return JSON.parse(match[0]);
+  } catch {
+    return fallbackValue;
+  }
+}
+
+function inferTopicsFromText(text) {
+  const candidates = [
+    "arrays",
+    "linked lists",
+    "strings",
+    "sorting",
+    "hashing",
+    "recursion",
+    "dynamic programming",
+    "trees",
+    "graphs",
+    "two pointers",
+    "complexity",
+    "null handling",
+  ];
+  const lowered = (text || "").toLowerCase();
+  return candidates.filter((topic) => lowered.includes(topic)).slice(0, 5);
+}
+
+function buildDefaultContest(memoryCount = 0) {
+  return {
+    title: "Recovery Contest",
+    durationMinutes: 45,
+    generatedFrom: {
+      learningDays: 5,
+      topicsCovered: ["arrays", "sorting", "complexity"],
+      mistakesMade: [
+        "missed edge cases",
+        "logic errors in traversal",
+        "complexity tradeoffs",
+      ],
+      weakAreas: ["arrays", "sorting", "complexity"],
+      memoryCount,
+    },
+    questions: [
+      {
+        id: "contest-q1",
+        title: "Boundary Safe Peak",
+        difficulty: "Easy",
+        topic: "arrays",
+        focusMistake: "missing boundary checks",
+        prompt:
+          "Given an integer array, return the first index whose value is strictly greater than both neighbors. Handle start and end positions safely.",
+        expectedOutcome:
+          "A correct traversal with explicit edge-case handling.",
+      },
+      {
+        id: "contest-q2",
+        title: "Merge Before Chaos",
+        difficulty: "Medium",
+        topic: "sorting",
+        focusMistake: "jumping into merging without ordering data",
+        prompt:
+          "Given intervals, merge the overlapping ones and explain why sorting first reduces the number of cases you must handle.",
+        expectedOutcome:
+          "A sorted-then-merge solution with clear complexity reasoning.",
+      },
+      {
+        id: "contest-q3",
+        title: "Pair Count Under Pressure",
+        difficulty: "Hard",
+        topic: "complexity",
+        focusMistake: "using brute force when a faster structure exists",
+        prompt:
+          "Count valid pairs in an array that satisfy a target relation in better than O(n^2). Explain what data structure reduces the repeated work.",
+        expectedOutcome:
+          "A faster-than-brute-force approach with explicit tradeoff analysis.",
+      },
+    ],
+  };
+}
+
+app.get("/api/personalized-contest", async (req, res) => {
+  try {
+    const memoryRecall = await hindsight.recall(
+      BANK_ID,
+      "Summarize the user's coding history with topics covered, repeated mistakes, weak areas, and signs of progress.",
+      { budget: "mid" },
+    );
+    const weakAreas = await inferWeakTopics();
+    const memoryText =
+      memoryRecall?.results?.map((result) => result.text).join("\n\n") || "";
+    const learningDays = Math.max(
+      5,
+      Math.min(10, memoryRecall?.results?.length || 5),
+    );
+    const topicsCovered = Array.from(
+      new Set(inferTopicsFromText(memoryText)),
+    ).slice(0, 5);
+
+    const contestPrompt = `Build a personalized coding contest for a learner.
+
+Requirements:
+- Use these weak areas first: ${weakAreas.join(", ") || "arrays, complexity"}
+- Topics already covered: ${topicsCovered.join(", ") || "arrays, strings"}
+- Past mistakes from memory:
+${memoryText || "No detailed memories available. Focus on repeated beginner mistakes."}
+
+Return JSON only in this shape:
+{
+  "title": "short contest title",
+  "durationMinutes": 45,
+  "generatedFrom": {
+    "learningDays": ${learningDays},
+    "topicsCovered": ["topic"],
+    "mistakesMade": ["mistake"],
+    "weakAreas": ["weak area"],
+    "memoryCount": ${memoryRecall?.results?.length || 0}
+  },
+  "questions": [
+    {
+      "id": "contest-q1",
+      "title": "question title",
+      "difficulty": "Easy",
+      "topic": "topic",
+      "focusMistake": "mistake to target",
+      "prompt": "full coding prompt",
+      "expectedOutcome": "what good performance looks like"
+    }
+  ]
+}
+
+Rules:
+- Generate 3 to 5 questions.
+- Difficulty must progress from Easy to Medium to Hard.
+- Questions must target weak areas and past mistakes.
+- Keep prompts concise and practical.`;
+
+    const contestResponse = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You generate personalized coding contests from learner memory and always return valid JSON only.",
+        },
+        { role: "user", content: contestPrompt },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+      max_tokens: 1100,
+    });
+
+    const parsedContest = parseJsonFromText(
+      contestResponse.choices[0]?.message?.content || "",
+      null,
+    );
+    const fallbackContest = buildDefaultContest(
+      memoryRecall?.results?.length || 0,
+    );
+
+    const contest =
+      parsedContest && Array.isArray(parsedContest.questions)
+        ? {
+            ...parsedContest,
+            durationMinutes: Number(parsedContest.durationMinutes) || 45,
+            generatedFrom: {
+              learningDays,
+              topicsCovered:
+                parsedContest.generatedFrom?.topicsCovered?.length
+                  ? parsedContest.generatedFrom.topicsCovered
+                  : topicsCovered,
+              mistakesMade:
+                parsedContest.generatedFrom?.mistakesMade?.length
+                  ? parsedContest.generatedFrom.mistakesMade
+                  : fallbackContest.generatedFrom.mistakesMade,
+              weakAreas:
+                parsedContest.generatedFrom?.weakAreas?.length
+                  ? parsedContest.generatedFrom.weakAreas
+                  : weakAreas,
+              memoryCount: memoryRecall?.results?.length || 0,
+            },
+            questions: parsedContest.questions.slice(0, 5),
+          }
+        : fallbackContest;
+
+    res.json({
+      ready: true,
+      contest,
+    });
+  } catch (error) {
+    res.json({
+      ready: true,
+      contest: buildDefaultContest(),
+    });
+  }
+});
+
+app.post("/api/personalized-contest/score", async (req, res) => {
+  const contest = req.body?.contest;
+  const submissions = Array.isArray(req.body?.submissions)
+    ? req.body.submissions
+    : [];
+  const timeSpentMinutes = Number(req.body?.timeSpentMinutes || 0);
+
+  if (!contest || !Array.isArray(contest.questions) || contest.questions.length === 0) {
+    return res.status(400).json({
+      score: 0,
+      feedback: "Missing contest questions.",
+      perQuestion: [],
+    });
+  }
+
+  const fallbackPerQuestion = contest.questions.map((question) => {
+    const submitted = submissions.find((item) => item.id === question.id);
+    const answer = submitted?.answer?.trim() || "";
+    const answerLength = answer.length;
+    const score =
+      answerLength === 0 ? 0 : answerLength < 80 ? 45 : answerLength < 180 ? 68 : 82;
+    return {
+      id: question.id,
+      title: question.title,
+      score,
+      feedback:
+        answerLength === 0
+          ? "No answer submitted. Start with a correct base solution."
+          : `You made progress on ${question.topic}. Next, strengthen ${question.focusMistake}.`,
+    };
+  });
+
+  try {
+    const scoringPrompt = `Evaluate this personalized coding contest submission.
+Return JSON only:
+{
+  "score": 78,
+  "feedback": "overall contest feedback",
+  "perQuestion": [
+    { "id": "contest-q1", "title": "title", "score": 70, "feedback": "specific feedback" }
+  ]
+}
+
+Contest:
+${JSON.stringify(contest, null, 2)}
+
+Submissions:
+${JSON.stringify(submissions, null, 2)}
+
+Time spent: ${timeSpentMinutes} minutes
+
+Instructions:
+- Score from 0 to 100.
+- Give concise, practical feedback.
+- Judge whether the learner improved on weak areas.
+- Keep each question feedback specific to the focus mistake.`;
+
+    const scoreResponse = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You evaluate coding contest attempts and always return strict JSON only.",
+        },
+        { role: "user", content: scoringPrompt },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.2,
+      max_tokens: 900,
+    });
+
+    const parsedResult = parseJsonFromText(
+      scoreResponse.choices[0]?.message?.content || "",
+      null,
+    );
+    if (!parsedResult) {
+      throw new Error("Contest scoring returned invalid JSON.");
+    }
+
+    const result = {
+      score: Number(parsedResult.score) || 0,
+      feedback:
+        parsedResult.feedback ||
+        "Contest completed. Review the weakest question and retry it once.",
+      perQuestion:
+        Array.isArray(parsedResult.perQuestion) && parsedResult.perQuestion.length > 0
+          ? parsedResult.perQuestion
+          : fallbackPerQuestion,
+      timeSpentMinutes,
+    };
+
+    await hindsight.retain(
+      BANK_ID,
+      `[PERSONALIZED CONTEST]
+Title: ${contest.title}
+Time Spent: ${timeSpentMinutes} minutes
+Overall Score: ${result.score}
+Weak Areas Targeted: ${(contest.generatedFrom?.weakAreas || []).join(", ")}
+Overall Feedback: ${result.feedback}
+Per Question: ${result.perQuestion.map((item) => `${item.title}=${item.score}`).join(" | ")}`,
+      {
+        tags: ["contest", "personalized-contest", "assessment"],
+      },
+    );
+
+    res.json(result);
+  } catch (error) {
+    const score = Math.round(
+      fallbackPerQuestion.reduce((sum, item) => sum + item.score, 0) /
+        Math.max(fallbackPerQuestion.length, 1),
+    );
+    res.json({
+      score,
+      feedback:
+        "Contest scored with fallback evaluation. Stronger edge-case handling and complexity reasoning will improve this.",
+      perQuestion: fallbackPerQuestion,
+      timeSpentMinutes,
     });
   }
 });
@@ -1652,7 +1975,7 @@ async function fetchCodeforcesProblems({ search = "", difficulty = "" } = {}) {
 
     const filtered = problems.filter((problem) =>
       matchesProblemFilters(problem, { search, difficulty }),
-    );
+    ).slice(0, 80);
 
     return {
       problems: filtered,
@@ -1720,6 +2043,8 @@ async function fetchCodingNinjasProblems({
 }
 
 app.get("/api/problems", async (req, res) => {
+  const MAX_VISIBLE_PROBLEMS = 24;
+  const MAX_VISIBLE_RECOMMENDED = 8;
   const topicFilter = (req.query.topic || "").toLowerCase();
   const difficultyFilter = (req.query.difficulty || "").toLowerCase();
   const sourceFilter = (req.query.source || "").toLowerCase();
@@ -1920,11 +2245,20 @@ app.get("/api/problems", async (req, res) => {
       };
     });
 
+    const visibleProblems = resultProblems.slice(0, MAX_VISIBLE_PROBLEMS);
+    const visibleRecommended = enriched
+      .filter((p) => p.recommendedForYou)
+      .slice(0, MAX_VISIBLE_RECOMMENDED);
+    const visiblePracticeAgain = enriched
+      .filter((p) => p.practiceAgain)
+      .slice(0, MAX_VISIBLE_RECOMMENDED);
+
     res.json({
       total: resultProblems.length,
-      problems: resultProblems,
-      recommended: enriched.filter((p) => p.recommendedForYou),
-      practiceAgain: enriched.filter((p) => p.practiceAgain),
+      visibleCount: visibleProblems.length,
+      problems: visibleProblems,
+      recommended: visibleRecommended,
+      practiceAgain: visiblePracticeAgain,
       weakTopics,
       sourceStats,
     });
@@ -1966,9 +2300,13 @@ app.get("/api/problems", async (req, res) => {
       },
     );
 
+    const visibleFallbackProblems = fallbackProblems.slice(0, MAX_VISIBLE_PROBLEMS);
+
     res.status(500).json({
       error: "Failed to fetch live problems. Showing fallback data instead.",
-      problems: fallbackProblems,
+      total: fallbackProblems.length,
+      visibleCount: visibleFallbackProblems.length,
+      problems: visibleFallbackProblems,
       recommended: [],
       practiceAgain: [],
       weakTopics: [],

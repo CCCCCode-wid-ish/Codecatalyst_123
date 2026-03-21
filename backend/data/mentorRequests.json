@@ -1,0 +1,98 @@
+[
+  {
+    "id": "request-1774052152963-snmwq5",
+    "userId": "user-9baaxh0s",
+    "userName": "aishwarya amin",
+    "userEmail": "pranithaa180@gmail.com",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "mentorName": "Aishwarya Amin",
+    "message": "can u guide regarding the react app",
+    "userWeaknesses": [
+      "arrays",
+      "linked list",
+      "complexity",
+      "sorting"
+    ],
+    "status": "pending",
+    "roomId": "room-user-9baaxh0s-mentor-1774049565553-mkwx19",
+    "createdAt": "2026-03-21T00:15:52.963Z",
+    "updatedAt": "2026-03-21T00:15:52.963Z",
+    "emailDelivery": {
+      "delivered": false,
+      "mode": "disabled",
+      "note": "Configure SENDGRID_API_KEY or SMTP_* variables to send real email."
+    }
+  },
+  {
+    "id": "request-1774052152144-9xv5f0",
+    "userId": "user-9baaxh0s",
+    "userName": "aishwarya amin",
+    "userEmail": "pranithaa180@gmail.com",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "mentorName": "Aishwarya Amin",
+    "message": "can u guide regarding the react app",
+    "userWeaknesses": [
+      "arrays",
+      "linked list",
+      "complexity",
+      "sorting"
+    ],
+    "status": "pending",
+    "roomId": "room-user-9baaxh0s-mentor-1774049565553-mkwx19",
+    "createdAt": "2026-03-21T00:15:52.144Z",
+    "updatedAt": "2026-03-21T00:15:52.144Z",
+    "emailDelivery": {
+      "delivered": false,
+      "mode": "disabled",
+      "note": "Configure SENDGRID_API_KEY or SMTP_* variables to send real email."
+    }
+  },
+  {
+    "id": "request-1774049614017-wm0gyk",
+    "userId": "user-9baaxh0s",
+    "userName": "aishwarya amin",
+    "userEmail": "pranithaa180@gmail.com",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "mentorName": "Aishwarya Amin",
+    "message": "hy i want the full guidance to learn the react",
+    "userWeaknesses": [
+      "arrays",
+      "linked list",
+      "complexity",
+      "sorting"
+    ],
+    "status": "accepted",
+    "roomId": "room-user-9baaxh0s-mentor-1774049565553-mkwx19",
+    "createdAt": "2026-03-20T23:33:34.017Z",
+    "updatedAt": "2026-03-20T23:41:08.706Z",
+    "emailDelivery": {
+      "delivered": false,
+      "mode": "disabled",
+      "note": "Configure SENDGRID_API_KEY or SMTP_* variables to send real email."
+    }
+  },
+  {
+    "id": "request-1774049613205-du11ow",
+    "userId": "user-9baaxh0s",
+    "userName": "aishwarya amin",
+    "userEmail": "pranithaa180@gmail.com",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "mentorName": "Aishwarya Amin",
+    "message": "hy i want the full guidance to learn the react",
+    "userWeaknesses": [
+      "arrays",
+      "linked list",
+      "complexity",
+      "sorting"
+    ],
+    "status": "accepted",
+    "roomId": "room-user-9baaxh0s-mentor-1774049565553-mkwx19",
+    "createdAt": "2026-03-20T23:33:33.205Z",
+    "updatedAt": "2026-03-20T23:41:06.307Z",
+    "emailDelivery": {
+      "delivered": false,
+      "mode": "disabled",
+      "note": "Configure SENDGRID_API_KEY or SMTP_* variables to send real email."
+    }
+  }
+]

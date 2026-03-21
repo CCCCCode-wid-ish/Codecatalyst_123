@@ -1,0 +1,94 @@
+[
+  {
+    "id": "notif-1774052152965-k5q2ok",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774052152963-snmwq5",
+    "type": "request_created",
+    "status": "unread",
+    "message": "aishwarya amin requested guidance from Aishwarya Amin.",
+    "createdAt": "2026-03-21T00:15:52.963Z"
+  },
+  {
+    "id": "notif-1774052152965-jkob07",
+    "userId": "user-9baaxh0s",
+    "requestId": "request-1774052152963-snmwq5",
+    "type": "request_created",
+    "status": "unread",
+    "message": "Your request to Aishwarya Amin is pending.",
+    "createdAt": "2026-03-21T00:15:52.963Z"
+  },
+  {
+    "id": "notif-1774052152147-2dgkqa",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774052152144-9xv5f0",
+    "type": "request_created",
+    "status": "unread",
+    "message": "aishwarya amin requested guidance from Aishwarya Amin.",
+    "createdAt": "2026-03-21T00:15:52.144Z"
+  },
+  {
+    "id": "notif-1774052152147-4b4e04",
+    "userId": "user-9baaxh0s",
+    "requestId": "request-1774052152144-9xv5f0",
+    "type": "request_created",
+    "status": "unread",
+    "message": "Your request to Aishwarya Amin is pending.",
+    "createdAt": "2026-03-21T00:15:52.144Z"
+  },
+  {
+    "id": "notif-1774050068707-qqer0d",
+    "userId": "user-9baaxh0s",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774049614017-wm0gyk",
+    "type": "request_status_changed",
+    "status": "unread",
+    "message": "Request status updated to accepted.",
+    "createdAt": "2026-03-20T23:41:08.707Z"
+  },
+  {
+    "id": "notif-1774050066308-1ijntl",
+    "userId": "user-9baaxh0s",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774049613205-du11ow",
+    "type": "request_status_changed",
+    "status": "unread",
+    "message": "Request status updated to accepted.",
+    "createdAt": "2026-03-20T23:41:06.308Z"
+  },
+  {
+    "id": "notif-1774049614018-4gryd8",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774049614017-wm0gyk",
+    "type": "request_created",
+    "status": "unread",
+    "message": "aishwarya amin requested guidance from Aishwarya Amin.",
+    "createdAt": "2026-03-20T23:33:34.017Z"
+  },
+  {
+    "id": "notif-1774049614018-b73xdn",
+    "userId": "user-9baaxh0s",
+    "requestId": "request-1774049614017-wm0gyk",
+    "type": "request_created",
+    "status": "unread",
+    "message": "Your request to Aishwarya Amin is pending.",
+    "createdAt": "2026-03-20T23:33:34.017Z"
+  },
+  {
+    "id": "notif-1774049613206-ihgz6u",
+    "mentorId": "mentor-1774049565553-mkwx19",
+    "requestId": "request-1774049613205-du11ow",
+    "type": "request_created",
+    "status": "unread",
+    "message": "aishwarya amin requested guidance from Aishwarya Amin.",
+    "createdAt": "2026-03-20T23:33:33.205Z"
+  },
+  {
+    "id": "notif-1774049613206-8wh6to",
+    "userId": "user-9baaxh0s",
+    "requestId": "request-1774049613205-du11ow",
+    "type": "request_created",
+    "status": "unread",
+    "message": "Your request to Aishwarya Amin is pending.",
+    "createdAt": "2026-03-20T23:33:33.205Z"
+  }
+]

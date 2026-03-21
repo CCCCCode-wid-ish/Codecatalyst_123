@@ -13,6 +13,7 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-s
 .container { width: min(100%, 1200px); margin: 0 auto; padding: 1rem; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; }
 .header-left { display: flex; align-items: center; gap: 0.7rem; }
+.header-right { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; justify-content: flex-end; }
 .nav-icon { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(135deg, #38bdf8, #8b5cf6); }
 .logo-row { display: flex; align-items: center; gap: 0.55rem; }
 .logo-icon { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #8b5cf6); display: grid; place-items: center; color: #fff; font-weight: 700; }
@@ -100,6 +101,15 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-s
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 100; }
 .modal { width: min(600px, 92vw); padding: 1rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.15); }
 .close-btn { background: transparent; border: 0; color: #fff; font-size: 1rem; cursor: pointer; }
+.app-shell-header { padding: 0.95rem 1rem; }
+.workspace-switcher { display: flex; gap: 0.35rem; padding: 0.25rem; border-radius: 999px; background: rgba(15,23,42,0.72); border: 1px solid rgba(255,255,255,0.12); }
+.workspace-pill { border: 0; background: transparent; color: #cbd5e1; border-radius: 999px; padding: 0.45rem 0.8rem; font-weight: 700; cursor: pointer; }
+.workspace-pill.active { background: linear-gradient(135deg, rgba(56,189,248,0.9), rgba(14,165,233,0.82)); color: #0b1120; }
+.workspace-status { display: flex; gap: 0.8rem; flex-wrap: wrap; padding: 0.75rem 1rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); }
+.workspace-banner { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; padding: 1.1rem 1.2rem; margin-bottom: 1rem; }
+.workspace-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.workspace-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1rem; align-items: start; }
+.mentor-profile-card { margin-top: 1rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.14); background: rgba(15,23,42,0.5); }
 
 .problems-panel .problem-section { margin: 0.8rem 0; }
 .problems-panel .problem-section h4 { margin-bottom: 0.5rem; }
@@ -244,5 +254,32 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-s
 @media (max-width: 840px) {
   .auth-shell {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell-header {
+    align-items: flex-start;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .workspace-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workspace-status {
+    flex-direction: column;
+    gap: 0.35rem;
   }
 }
