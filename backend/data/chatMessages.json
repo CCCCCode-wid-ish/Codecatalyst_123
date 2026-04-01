@@ -22,5 +22,29 @@
     "senderRole": "user",
     "text": "ok",
     "createdAt": "2026-03-21T00:16:24.652Z"
+  },
+  {
+    "id": "chat-1774061829972-uwadb0",
+    "roomId": "room-user-9baaxh0s-mentor-1774049565553-mkwx19",
+    "senderId": "mentor-1774049565553-mkwx19",
+    "senderRole": "mentor",
+    "text": "ok provide me the link",
+    "createdAt": "2026-03-21T02:57:09.972Z"
+  },
+  {
+    "id": "chat-1774062827939-mu7d9k",
+    "roomId": "room-user-9baaxh0s-mentor-1774062666645-eqsljq",
+    "senderId": "mentor-1774062666645-eqsljq",
+    "senderRole": "mentor",
+    "text": "ok u can join to the session by using the link",
+    "createdAt": "2026-03-21T03:13:47.939Z"
+  },
+  {
+    "id": "chat-1775056610246-jiahvo",
+    "roomId": "room-user-5ha47rey-mentor-1775056506207-qbp2e2",
+    "senderId": "mentor-1775056506207-qbp2e2",
+    "senderRole": "mentor",
+    "text": "At 4 pm",
+    "createdAt": "2026-04-01T15:16:50.246Z"
   }
 ]

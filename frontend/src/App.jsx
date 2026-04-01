@@ -867,8 +867,10 @@ function Problems() {
   const [sourceFilter, setSourceFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [problemId, setProblemId] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const loadProblems = async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams();
       if (topicFilter !== "All") params.set("topic", topicFilter);
@@ -889,6 +891,8 @@ function Problems() {
       setPracticeAgain([]);
       setWeakTopics([]);
       setSourceStats([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -969,7 +973,8 @@ function Problems() {
         <button type="button" className="submit-btn" onClick={openBlankCodingWorkspace}>Open Coding Page</button>
       </div>
       <p className="text-muted">Weak topics from Hindsight: {weakTopics.join(", ") || "None yet"}</p>
-      <div className="dashboard-cards">{sourceStats.length === 0 ? <div className="mini-card"><h4>Source Status</h4><small>No platform data loaded yet.</small></div> : sourceStats.map((stat) => <div key={stat.source} className="mini-card"><h4>{stat.source}</h4><p>{stat.count}</p><small>{stat.mode === "live" ? "Live fetch" : "Fallback"} | {stat.note}</small></div>)}</div>
+      {loading && <p className="text-muted">Loading problems from platform sources...</p>}
+      <div className="dashboard-cards">{sourceStats.length === 0 ? <div className="mini-card"><h4>Source Status</h4><small>{loading ? "Loading platform data..." : "No platform data loaded yet."}</small></div> : sourceStats.map((stat) => <div key={stat.source} className="mini-card"><h4>{stat.source}</h4><p>{stat.count}</p><small>{stat.mode === "live" ? "Live fetch" : "Fallback"} | {stat.note}</small></div>)}</div>
       <div className="problem-section"><h4>Recommended for you</h4><div className="problem-grid">{recommended.length === 0 ? <p>No recommended problems right now.</p> : recommended.map((p) => renderProblemCard(p, "recommended"))}</div></div>
       <div className="problem-section"><h4>Practice again</h4><div className="problem-grid">{practiceAgain.length === 0 ? <p>No practice-again items yet.</p> : practiceAgain.map((p) => renderProblemCard(p, "practice-again"))}</div></div>
       <div className="problem-section"><h4>All problems</h4><div className="problem-grid">{problems.length === 0 ? <div className="mini-card"><p>No problems match current filters.</p><div className="filter-row" style={{ marginTop: "0.75rem" }}><button type="button" className="outline-btn" onClick={resetProblemFilters}>Clear Filters</button><button type="button" className="submit-btn" onClick={openBlankCodingWorkspace}>Go To Coding Page</button></div></div> : problems.map((p) => renderProblemCard(p))}</div></div>
@@ -1876,7 +1881,7 @@ function App() {
           <Route path="/challenge" element={<ProtectedRoute authUser={authUser} allowedWorkspaces={["mentee"]} contestLocked={menteeContestLocked} allowBeforeContest><Challenge challengeData={challenge} fetchChallenge={async () => { const res = await fetch(`${API}/api/personalized-contest`); const data = await res.json(); setChallenge(data); }} onContestComplete={markContestCompleted} /></ProtectedRoute>} />
           <Route path="/teachback" element={<ProtectedRoute authUser={authUser} allowedWorkspaces={["mentee"]} contestLocked={menteeContestLocked}><TeachBack teachBackConcept={teachBackConcept} teachBackExplanation={teachBackExplanation} setTeachBackConcept={setTeachBackConcept} setTeachBackExplanation={setTeachBackExplanation} teachBackScore={teachBackScore} teachBackResult={teachBackResult} evaluateTeachBack={evaluateTeachBack} /></ProtectedRoute>} />
         </Routes>
-        <footer className="footer">Built for HackWithBangalore</footer>
+        <footer className="footer">Powered by Cognitive AI · Designed for Developers</footer>
       </div>
     </Router>
   );

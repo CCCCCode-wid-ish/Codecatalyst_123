@@ -1391,6 +1391,19 @@ function stripHtml(value = "") {
     .trim();
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function dedupeProblems(problems) {
   return Array.from(
     new Map(
@@ -1677,14 +1690,14 @@ async function fetchLeetCodeProblems({ search = "", difficulty = "" } = {}) {
       },
     };
 
-    const response = await fetch("https://leetcode.com/graphql", {
+    const response = await fetchWithTimeout("https://leetcode.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify(graphqlQuery),
-    });
+    }, 4500);
 
     if (!response.ok) {
       throw new Error(`LeetCode API response status ${response.status}`);
@@ -1745,12 +1758,12 @@ async function fetchGeeksForGeeksProblems({
     const collected = [];
 
     for (const page of sourcePages) {
-      const response = await fetch(page.url, {
+      const response = await fetchWithTimeout(page.url, {
         headers: {
           "User-Agent": "Mozilla/5.0",
           Accept: "text/html,application/xhtml+xml",
         },
-      });
+      }, 3500);
       if (!response.ok) {
         continue;
       }
@@ -1828,7 +1841,7 @@ async function fetchCodeChefProblems({ search = "", difficulty = "" } = {}) {
 
   if (!process.env.CODECHEF_CLIENT_ID || !process.env.CODECHEF_CLIENT_SECRET) {
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         "https://www.codechef.com/api/list/problems?limit=50&offset=0&sort_by=successful_submissions&sorting_order=desc",
         {
           headers: {
@@ -1836,6 +1849,7 @@ async function fetchCodeChefProblems({ search = "", difficulty = "" } = {}) {
             Accept: "application/json,text/plain,*/*",
           },
         },
+        3500,
       );
 
       if (response.ok) {
@@ -1888,7 +1902,7 @@ async function fetchCodeChefProblems({ search = "", difficulty = "" } = {}) {
   }
 
   try {
-    const tokenResponse = await fetch("https://api.codechef.com/oauth/token", {
+    const tokenResponse = await fetchWithTimeout("https://api.codechef.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -1896,19 +1910,19 @@ async function fetchCodeChefProblems({ search = "", difficulty = "" } = {}) {
         client_id: process.env.CODECHEF_CLIENT_ID,
         client_secret: process.env.CODECHEF_CLIENT_SECRET,
       }),
-    });
+    }, 3500);
 
     if (!tokenResponse.ok) throw new Error("CodeChef auth failed");
     const tokenJson = await tokenResponse.json();
     const accessToken = tokenJson?.result?.data?.access_token;
     if (!accessToken) throw new Error("Missing CodeChef access token");
 
-    const problemsResponse = await fetch("https://api.codechef.com/problems", {
+    const problemsResponse = await fetchWithTimeout("https://api.codechef.com/problems", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/json",
       },
-    });
+    }, 3500);
 
     if (!problemsResponse.ok) throw new Error("CodeChef problems fetch failed");
     const problemsJson = await problemsResponse.json();
@@ -1953,8 +1967,10 @@ async function fetchCodeChefProblems({ search = "", difficulty = "" } = {}) {
 
 async function fetchCodeforcesProblems({ search = "", difficulty = "" } = {}) {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://codeforces.com/api/problemset.problems",
+      {},
+      4000,
     );
     if (!response.ok) throw new Error("Codeforces API down");
     const json = await response.json();
@@ -2063,63 +2079,81 @@ app.get("/api/problems", async (req, res) => {
 
     let allProblems = [];
     const sourceStats = [];
+    const loaders = [];
 
     if (sources.includes("leetcode")) {
-      const leetcodeProblems = await fetchLeetCodeProblems({
-        search,
-        difficulty: difficulty,
-      });
-      allProblems.push(...leetcodeProblems);
-      sourceStats.push({
-        source: "LeetCode",
-        count: leetcodeProblems.length,
-        mode: leetcodeProblems.length > 0 ? "live" : "fallback",
-        note:
-          leetcodeProblems.length > 0
-            ? "Fetched from the official LeetCode GraphQL endpoint."
-            : "No live LeetCode rows returned for this filter.",
-      });
+      loaders.push(
+        fetchLeetCodeProblems({
+          search,
+          difficulty,
+        }).then((leetcodeProblems) => ({
+          problems: leetcodeProblems,
+          sourceMeta: {
+            source: "LeetCode",
+            count: leetcodeProblems.length,
+            mode: leetcodeProblems.length > 0 ? "live" : "fallback",
+            note:
+              leetcodeProblems.length > 0
+                ? "Fetched from the official LeetCode GraphQL endpoint."
+                : "No live LeetCode rows returned for this filter.",
+          },
+        })),
+      );
     }
 
     if (sources.includes("geeksforgeeks")) {
-      const gfgResult = await fetchGeeksForGeeksProblems({
-        search,
-        difficulty: difficulty,
-      });
-      allProblems.push(...gfgResult.problems);
-      sourceStats.push(gfgResult.sourceMeta);
+      loaders.push(
+        fetchGeeksForGeeksProblems({
+          search,
+          difficulty,
+        }),
+      );
     }
 
     if (sources.includes("codechef")) {
-      const codechefResult = await fetchCodeChefProblems({
-        search,
-        difficulty: difficulty,
-      });
-      allProblems.push(...codechefResult.problems);
-      sourceStats.push(codechefResult.sourceMeta);
+      loaders.push(
+        fetchCodeChefProblems({
+          search,
+          difficulty,
+        }),
+      );
     }
 
     if (sources.includes("codeforces")) {
-      const codeforcesResult = await fetchCodeforcesProblems({
-        search,
-        difficulty: difficulty,
-      });
-      allProblems.push(...codeforcesResult.problems);
-      sourceStats.push(codeforcesResult.sourceMeta);
+      loaders.push(
+        fetchCodeforcesProblems({
+          search,
+          difficulty,
+        }),
+      );
     }
 
     if (sources.includes("codingninjas")) {
-      const codingNinjasProblems = await fetchCodingNinjasProblems({
-        search,
-        difficulty: difficulty,
-      });
-      allProblems.push(...codingNinjasProblems);
-      sourceStats.push({
-        source: "CodingNinjas",
-        count: codingNinjasProblems.length,
-        mode: "fallback",
-        note: "Using local curated CodingNinjas practice rows.",
-      });
+      loaders.push(
+        Promise.resolve().then(() => {
+          const codingNinjasProblems = fetchCodingNinjasProblems({
+            search,
+            difficulty,
+          });
+          return {
+            problems: codingNinjasProblems,
+            sourceMeta: {
+              source: "CodingNinjas",
+              count: codingNinjasProblems.length,
+              mode: "fallback",
+              note: "Using local curated CodingNinjas practice rows.",
+            },
+          };
+        }),
+      );
+    }
+
+    const loadedSources = await Promise.all(loaders);
+    for (const result of loadedSources) {
+      allProblems.push(...(result.problems || []));
+      if (result.sourceMeta) {
+        sourceStats.push(result.sourceMeta);
+      }
     }
     const seededFallback = getSeededProblems();
 
